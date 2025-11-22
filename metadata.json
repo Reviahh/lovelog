@@ -1,5 +1,5 @@
 {
-  "name": "LoveLog - 微信热力图",
-  "description": "浪漫的聊天记录可视化工具。将语音时长和消息数量记录在粉红色的 GitHub 风格贡献图中。",
+  "name": "LoveLog - 恋爱日志",
+  "description": "浪漫的聊天记录可视化工具。包含热力图、月历视图及四维恋爱指数分析，记录我们的点点滴滴。",
   "requestFramePermissions": []
 }

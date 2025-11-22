@@ -51,7 +51,8 @@ export const Heatmap: React.FC<HeatmapProps> = ({ data }) => {
     const daysInMonth = getDaysInMonth(year, month);
     
     // Create a map of the *entire* dataset for lookup
-    const dataMap = new Map(data.map(d => [d.date, d]));
+    const dataMap = new Map<string, DailyData>();
+    data.forEach(d => dataMap.set(d.date, d));
 
     // Determine Max Score for this month (relative scaling) or global? Let's use global max from utils logic to keep colors consistent
     // Re-using the logic from processHeatmapData roughly for levels:

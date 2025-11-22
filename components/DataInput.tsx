@@ -106,7 +106,7 @@ export const DataInput: React.FC<DataInputProps> = ({ onAddData, onImportJson })
       ) : (
         <div className="flex flex-col gap-4">
             <p className="text-xs text-gray-500">
-                粘贴 JSON 数组：<code className="bg-gray-100 px-1 rounded">[{"date": "2023-10-25", "voiceMinutes": 30, "messageCount": 100}, ...]</code>
+                粘贴 JSON 数组：<code className="bg-gray-100 px-1 rounded">{`[{"date": "2023-10-25", "voiceMinutes": 30, "messageCount": 100}, ...]`}</code>
             </p>
             <textarea 
                 rows={5}
