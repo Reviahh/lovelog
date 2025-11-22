@@ -1,7 +1,10 @@
 import React, { useState } from 'react';
 import { GoogleGenAI } from "@google/genai";
 import { DailyData, Stats } from '../types';
-import { Sparkles } from 'lucide-react';
+import { Sparkles, Key } from 'lucide-react';
+
+// Ensure TypeScript doesn't complain about process if types aren't available
+declare const process: any;
 
 interface AiReportProps {
   data: DailyData[];
@@ -14,16 +17,50 @@ export const AiReport: React.FC<AiReportProps> = ({ data, stats }) => {
   const [error, setError] = useState<string | null>(null);
 
   const generateReport = async () => {
-    if (!process.env.API_KEY) {
-        setError("API Key 环境变量缺失。");
-        return;
-    }
-
     setLoading(true);
     setError(null);
 
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+      // 1. Safely try to get the API key from process.env without crashing browser
+      let apiKey = '';
+      try {
+        if (typeof process !== 'undefined' && process.env) {
+          apiKey = process.env.API_KEY || '';
+        }
+      } catch (e) {
+        // Ignore ReferenceError if process is not defined
+      }
+
+      // 2. If key is missing, try the AI Studio secure key selector (Preview Environment specific)
+      const aiStudio = (window as any).aistudio;
+      if (!apiKey && aiStudio) {
+          try {
+              const hasKey = await aiStudio.hasSelectedApiKey();
+              if (!hasKey) {
+                  await aiStudio.openSelectKey();
+              }
+              // In some environments, the key is injected into process.env AFTER selection
+              // In others, we might need to wait or it's handled internally by a proxy.
+              // We re-check process.env safely.
+              if (typeof process !== 'undefined' && process.env) {
+                  apiKey = process.env.API_KEY || '';
+              }
+          } catch (e) {
+              console.error("Key selection failed:", e);
+          }
+      }
+
+      if (!apiKey) {
+          if ((window as any).aistudio) {
+            setError("请点击下方按钮连接 Google 账号以获取 API 权限。");
+          } else {
+            setError("未检测到 API Key。请确保环境变量 API_KEY 已配置。");
+          }
+          setLoading(false);
+          return;
+      }
+
+      const ai = new GoogleGenAI({ apiKey });
       
       // Prepare a summary of data to avoid token limits
       const recentData = data.slice(-30); // Last 30 entries
@@ -52,12 +89,28 @@ export const AiReport: React.FC<AiReportProps> = ({ data, stats }) => {
       });
 
       setReport(response.text || "无法生成报告。");
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      setError("无法连接到恋爱卫星 (API 错误)。");
+      if (err.message?.includes('API key')) {
+         setError("API Key 无效或未授权。");
+      } else {
+         setError("无法连接到恋爱卫星 (API 错误)。");
+      }
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleConnectKey = async () => {
+      const aiStudio = (window as any).aistudio;
+      if (aiStudio) {
+          try {
+              await aiStudio.openSelectKey();
+              setError(null); 
+          } catch (e) {
+              console.error(e);
+          }
+      }
   };
 
   return (
@@ -72,7 +125,7 @@ export const AiReport: React.FC<AiReportProps> = ({ data, stats }) => {
         AI 恋爱分析师
       </h3>
       
-      {!report && !loading && (
+      {!report && !loading && !error && (
           <p className="text-rose-700 text-sm mb-4">
               使用 Gemini AI 解锁你们的关系洞察。
           </p>
@@ -86,7 +139,17 @@ export const AiReport: React.FC<AiReportProps> = ({ data, stats }) => {
       )}
 
       {error && (
-        <p className="text-red-500 text-sm bg-red-50 p-2 rounded mb-2">{error}</p>
+        <div className="mb-4">
+            <p className="text-red-500 text-sm bg-red-50 p-2 rounded mb-2 border border-red-100">{error}</p>
+            {(window as any).aistudio && error.includes('连接') && (
+                <button 
+                    onClick={handleConnectKey}
+                    className="text-xs flex items-center gap-1 text-rose-600 font-bold hover:underline"
+                >
+                    <Key size={12} /> 点击此处连接/更换 API Key
+                </button>
+            )}
+        </div>
       )}
 
       {report && (
@@ -98,8 +161,9 @@ export const AiReport: React.FC<AiReportProps> = ({ data, stats }) => {
       {!loading && (
         <button 
             onClick={generateReport} 
-            className="w-full bg-rose-600 hover:bg-rose-700 text-white font-bold py-2 px-4 rounded-lg shadow transition-transform active:scale-95"
+            className="w-full bg-rose-600 hover:bg-rose-700 text-white font-bold py-2 px-4 rounded-lg shadow transition-transform active:scale-95 flex items-center justify-center gap-2"
         >
+            <Sparkles size={16} />
             {report ? '重新生成报告' : '生成恋爱报告'}
         </button>
       )}
