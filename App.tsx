@@ -2,7 +2,6 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { DailyData } from './types';
 import { Heatmap } from './components/Heatmap';
 import { DataInput } from './components/DataInput';
-import { AiReport } from './components/AiReport';
 import { AnalysisCharts } from './components/AnalysisCharts';
 import { calculateStats, generateMockData } from './utils';
 import { Heart, Phone, MessageCircle, Flame, Calendar } from 'lucide-react';
@@ -108,21 +107,15 @@ const App = () => {
              <AnalysisCharts data={data} stats={stats} />
           </div>
 
-          {/* Bottom Left: Input */}
-          <div className="lg:col-span-2">
-            <h2 className="text-xl font-bold text-rose-800 mb-4">记录数据</h2>
-            <DataInput onAddData={handleAddData} onImportJson={handleImport} />
-          </div>
-
-          {/* Bottom Right: AI Report */}
-          <div className="lg:col-span-1">
-            <h2 className="text-xl font-bold text-rose-800 mb-4">AI 恋爱分析</h2>
-            <AiReport data={data} stats={stats} />
+          {/* Bottom: Data Management */}
+          <div className="lg:col-span-3">
+            <h2 className="text-xl font-bold text-rose-800 mb-4">数据管理</h2>
+            <DataInput data={data} onAddData={handleAddData} onImportJson={handleImport} />
           </div>
       </div>
       
       <footer className="text-center text-rose-300 text-sm pb-8">
-        <p>Made with ❤️ using React, Tailwind & Gemini</p>
+        <p>Made with ❤️ using React & Tailwind</p>
       </footer>
     </div>
   );

@@ -1,19 +1,21 @@
 import React, { useState } from 'react';
 import { DailyData } from '../types';
-import { PlusCircle, FileJson, Save } from 'lucide-react';
+import { PlusCircle, FileJson, Save, Download, Copy, Check } from 'lucide-react';
 
 interface DataInputProps {
+  data: DailyData[];
   onAddData: (data: DailyData) => void;
   onImportJson: (data: DailyData[]) => void;
 }
 
-export const DataInput: React.FC<DataInputProps> = ({ onAddData, onImportJson }) => {
-  const [activeTab, setActiveTab] = useState<'single' | 'json'>('single');
+export const DataInput: React.FC<DataInputProps> = ({ data, onAddData, onImportJson }) => {
+  const [activeTab, setActiveTab] = useState<'single' | 'import' | 'export'>('single');
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [voice, setVoice] = useState('');
   const [msgs, setMsgs] = useState('');
   const [jsonInput, setJsonInput] = useState('');
   const [error, setError] = useState('');
+  const [copySuccess, setCopySuccess] = useState(false);
 
   const handleSingleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -47,24 +49,52 @@ export const DataInput: React.FC<DataInputProps> = ({ onAddData, onImportJson })
       }
   };
 
+  const handleDownload = () => {
+    const jsonString = JSON.stringify(data, null, 2);
+    const blob = new Blob([jsonString], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `lovelog_backup_${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(JSON.stringify(data, null, 2));
+      setCopySuccess(true);
+      setTimeout(() => setCopySuccess(false), 2000);
+    } catch (err) {
+      setError('复制失败');
+    }
+  };
+
   return (
     <div className="bg-white p-6 rounded-xl shadow-lg border border-rose-100">
-      <div className="flex gap-4 mb-6 border-b border-rose-100 pb-2">
+      <div className="flex gap-4 mb-6 border-b border-rose-100 pb-2 overflow-x-auto">
         <button 
             onClick={() => setActiveTab('single')}
-            className={`pb-2 font-semibold text-sm flex items-center gap-2 transition-colors ${activeTab === 'single' ? 'text-rose-600 border-b-2 border-rose-600' : 'text-gray-400 hover:text-rose-400'}`}
+            className={`pb-2 font-semibold text-sm flex items-center gap-2 transition-colors whitespace-nowrap ${activeTab === 'single' ? 'text-rose-600 border-b-2 border-rose-600' : 'text-gray-400 hover:text-rose-400'}`}
         >
             <PlusCircle size={16} /> 每日记录
         </button>
         <button 
-            onClick={() => setActiveTab('json')}
-            className={`pb-2 font-semibold text-sm flex items-center gap-2 transition-colors ${activeTab === 'json' ? 'text-rose-600 border-b-2 border-rose-600' : 'text-gray-400 hover:text-rose-400'}`}
+            onClick={() => setActiveTab('import')}
+            className={`pb-2 font-semibold text-sm flex items-center gap-2 transition-colors whitespace-nowrap ${activeTab === 'import' ? 'text-rose-600 border-b-2 border-rose-600' : 'text-gray-400 hover:text-rose-400'}`}
         >
-            <FileJson size={16} /> 批量导入 (JSON)
+            <FileJson size={16} /> 批量导入
+        </button>
+        <button 
+            onClick={() => setActiveTab('export')}
+            className={`pb-2 font-semibold text-sm flex items-center gap-2 transition-colors whitespace-nowrap ${activeTab === 'export' ? 'text-rose-600 border-b-2 border-rose-600' : 'text-gray-400 hover:text-rose-400'}`}
+        >
+            <Download size={16} /> 导出备份
         </button>
       </div>
 
-      {activeTab === 'single' ? (
+      {activeTab === 'single' && (
         <form onSubmit={handleSingleSubmit} className="flex flex-col gap-4">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
@@ -103,7 +133,9 @@ export const DataInput: React.FC<DataInputProps> = ({ onAddData, onImportJson })
                 <Save size={18} /> 记录爱意
             </button>
         </form>
-      ) : (
+      )}
+
+      {activeTab === 'import' && (
         <div className="flex flex-col gap-4">
             <p className="text-xs text-gray-500">
                 粘贴 JSON 数组：<code className="bg-gray-100 px-1 rounded">{`[{"date": "2023-10-25", "voiceMinutes": 30, "messageCount": 100}, ...]`}</code>
@@ -120,6 +152,38 @@ export const DataInput: React.FC<DataInputProps> = ({ onAddData, onImportJson })
             </button>
         </div>
       )}
+
+      {activeTab === 'export' && (
+          <div className="flex flex-col gap-4 animate-fade-in">
+            <p className="text-xs text-gray-500">
+                导出当前所有数据为 JSON 格式，可用于数据备份或迁移。
+            </p>
+            <div className="relative">
+                <textarea
+                    readOnly
+                    rows={8}
+                    value={JSON.stringify(data, null, 2)}
+                    className="w-full p-3 rounded-lg border border-rose-200 focus:outline-none bg-gray-50 font-mono text-xs text-rose-900"
+                />
+            </div>
+            <div className="flex flex-col md:flex-row gap-3">
+                 <button 
+                    onClick={handleCopy} 
+                    className={`flex-1 py-2 px-4 rounded-lg font-bold shadow-md transition-all flex items-center justify-center gap-2 ${copySuccess ? 'bg-green-500 text-white' : 'bg-white text-rose-600 border border-rose-200 hover:bg-rose-50'}`}
+                 >
+                     {copySuccess ? <Check size={18} /> : <Copy size={18} />}
+                     {copySuccess ? '已复制' : '复制 JSON'}
+                 </button>
+                 <button 
+                    onClick={handleDownload} 
+                    className="flex-1 bg-rose-500 hover:bg-rose-600 text-white py-2 px-4 rounded-lg font-bold shadow-md transition-all flex items-center justify-center gap-2"
+                 >
+                     <Download size={18} /> 下载文件 (.json)
+                 </button>
+            </div>
+          </div>
+      )}
+
       {error && <p className="mt-3 text-sm text-red-500 font-semibold">{error}</p>}
     </div>
   );
